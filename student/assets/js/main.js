@@ -283,3 +283,45 @@ new Chart(ctx2, {
     cutout: '70%' // sleek donut look
   }
 });
+
+
+
+
+const express = require("express");
+const Razorpay = require("razorpay");
+const bodyParser = require("body-parser");
+const crypto = require("crypto");
+
+const app = express();
+app.use(bodyParser.json());
+
+const razorpay = new Razorpay({
+    key_id: "rzp_test_1234567890abcdef",
+    key_secret: "YOUR_SECRET_KEY"
+});
+
+app.post("/create-order", async (req, res) => {
+    const options = {
+        amount: 20000,  // amount in paise
+        currency: "INR",
+        receipt: "order_rcptid_11"
+    };
+    const order = await razorpay.orders.create(options);
+    res.json(order);
+});
+
+app.post("/verify", (req, res) => {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const generated_signature = crypto
+        .createHmac("sha256", razorpay.key_secret)
+        .update(razorpay_order_id + "|" + razorpay_payment_id)
+        .digest("hex");
+
+    if (generated_signature === razorpay_signature) {
+        res.send("Payment verified successfully!");
+    } else {
+        res.status(400).send("Payment verification failed!");
+    }
+});
+
+app.listen(3000, () => console.log("Server running on port 3000"));
